@@ -27,12 +27,15 @@ class Category;
 class Event;
 class Preferences;
 class SQLiteManager;
+class TDateEdit;
+class TTimeEdit;
 
 
 static const uint32 kEventWindowQuitting = 'kewq';
 static const uint32 kShowPopUpCalendar = 'kspc';
 static const uint32 kStartDateChanged = 'ksdc';
 static const uint32 kEndDateChanged = 'kedc';
+
 
 class EventWindow: public BWindow {
 public:
@@ -45,8 +48,6 @@ public:
 
 	void			SetEvent(Event* event);
 	void			SetEventDate(BDate& date);
-	void			SetStartDate(BDate& date);
-	void			SetEndDate(BDate& date);
 
 	static void		SetPreferences(Preferences* preferences);
 
@@ -55,40 +56,41 @@ public:
 	void			OnDeleteClick();
 	void			CloseWindow();
 
-	BString			GetDateString(BDate& date);
-	BString			GetLocaleTimeString(time_t timeValue);
 	void			GetDateFromMessage(BMessage* message,
 					BDate& date);
-
+	void			GetTimeFromMessage(BMessage* message,
+					BTime& time);
 private:
 	void			_InitInterface();
 	void 			_DisableControls();
 	void			_UpdateCategoryMenu();
 	void			_ShowPopUpCalendar(int8 which);
 
-	static const uint32	kDeletePressed	= 1000;
-	static const uint32	kCancelPressed	= 1001;
-	static const uint32	kSavePressed	= 1002;
-	static const uint32	kAllDayPressed	= 1003;
-	static const uint32	kOptEveryMonth	= 1004;
-	static const uint32	kOptEveryYear	= 1005;
+	static const uint32	kDeletePressed		= 1000;
+	static const uint32	kCancelPressed		= 1001;
+	static const uint32	kSavePressed		= 1002;
+	static const uint32	kAllDayPressed		= 1003;
+	static const uint32	kOptEveryMonth		= 1004;
+	static const uint32	kOptEveryYear		= 1005;
+	static const uint32 	kStartDateEditChanged	= 1006;
+	static const uint32 	kEndDateEditChanged	= 1007;
+	static const uint32 	kStartTimeEditChanged	= 1008;
+	static const uint32 	kEndTimeEditChanged	= 1009;
 
 	static Preferences*	fPreferences;
 
 	BTextControl*		fTextName;
 	BTextControl*		fTextPlace;
-	BTextControl*		fTextStartDate;
-	BTextControl*		fTextEndDate;
-	BTextControl*		fTextStartTime;
-	BTextControl*		fTextEndTime;
+
+	TTimeEdit*		fStartTimeEdit;
+	TTimeEdit*		fEndTimeEdit;
+	TDateEdit*		fStartDateEdit;
+	TDateEdit*		fEndDateEdit;
 
 	BTextView*		fTextDescription;
 	BView*			fMainView;
 
 	BMenu*			fCategoryMenu;
-	BMenu*			fStartDateEdit;
-	BMenu*			fEndDateEdit;
-
 	BMenuField*		fCategoryMenuField;
 
 	BStringView*		fNameLabel;

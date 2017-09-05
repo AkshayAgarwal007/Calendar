@@ -36,6 +36,7 @@
 #include "CalendarMenuWindow.h"
 #include "Category.h"
 #include "CategoryEditWindow.h"
+#include "DateTimeEdit.h"
 #include "Event.h"
 #include "MainWindow.h"
 #include "Preferences.h"
@@ -95,6 +96,7 @@ EventWindow::MessageReceived(BMessage* message)
 			UnlockLooper();
 			break;
 		}
+
 		case kShowPopUpCalendar:
 		{
 			int8 which;
@@ -107,7 +109,8 @@ EventWindow::MessageReceived(BMessage* message)
 		{
 			BDate date;
 			GetDateFromMessage(message, date);
-			SetStartDate(date);
+			fStartDateEdit->SetDate(date);
+			fStartTimeEdit->SetDate(date);
 			break;
 		}
 
@@ -115,7 +118,42 @@ EventWindow::MessageReceived(BMessage* message)
 		{
 			BDate date;
 			GetDateFromMessage(message, date);
-			SetEndDate(date);
+			fEndDateEdit->SetDate(date);
+			fEndTimeEdit->SetDate(date);
+			break;
+		}
+
+		case kStartDateEditChanged:
+		{
+			BDate date;
+			GetDateFromMessage(message, date);
+			fStartDateEdit->SetDate(date);
+			fStartTimeEdit->SetDate(date);
+			break;
+		}
+
+		case kEndDateEditChanged:
+		{
+			BDate date;
+			GetDateFromMessage(message, date);
+			fEndDateEdit->SetDate(date);
+			fEndTimeEdit->SetDate(date);
+			break;
+		}
+
+		case kStartTimeEditChanged:
+		{
+			BTime time;
+			GetTimeFromMessage(message, time);
+			fStartTimeEdit->SetTime(time.Hour(), time.Minute(), time.Second());
+			break;
+		}
+
+		case kEndTimeEditChanged:
+		{
+			BTime time;
+			GetTimeFromMessage(message, time);
+			fEndTimeEdit->SetTime(time.Hour(), time.Minute(), time.Second());
 			break;
 		}
 
@@ -143,12 +181,11 @@ EventWindow::SetEvent(Event* event)
 		fTextPlace->SetText(event->GetPlace());
 		fTextDescription->SetText(event->GetDescription());
 
-		fStartDate = BDate(event->GetStartDateTime());
-		fEndDate = BDate(event->GetEndDateTime());
+		fStartDateEdit->SetDate(BDate(event->GetStartDateTime()));
+		fEndDateEdit->SetDate(BDate(event->GetEndDateTime()));
 
-		fTextStartDate->SetText(GetDateString(fStartDate));
-		fTextEndDate->SetText(GetDateString(fEndDate));
-
+		fStartTimeEdit->SetTime_t(event->GetStartDateTime() - timezone);
+		fEndTimeEdit->SetTime_t(event->GetEndDateTime() - timezone);
 
 		Category* category;
 
@@ -162,24 +199,13 @@ EventWindow::SetEvent(Event* event)
 
 		if (event->IsAllDay()) {
 			fAllDayCheckBox->SetValue(B_CONTROL_ON);
-			fTextStartTime->SetEnabled(false);
-			fTextEndTime->SetEnabled(false);
-			fTextStartTime->SetText("");
-			fTextEndTime->SetText("");
-		}
-
-		else
-		{
+			fStartTimeEdit->SetEnabled(false);
+			fEndTimeEdit->SetEnabled(false);
+		} else
 			fAllDayCheckBox->SetValue(B_CONTROL_OFF);
-			fTextStartTime->SetText(GetLocaleTimeString(event->GetStartDateTime()));
-			fTextEndTime->SetText(GetLocaleTimeString(event->GetEndDateTime()));
-		}
-
 
 		fDeleteButton->SetEnabled(true);
-
 	}
-
 }
 
 
@@ -195,59 +221,25 @@ EventWindow::GetDateFromMessage(BMessage* message, BDate& date)
 
 
 void
+EventWindow::GetTimeFromMessage(BMessage* message, BTime& time)
+{
+	int32 hour, minute, second;
+	message->FindInt32("hour", &hour);
+	message->FindInt32("minute", &minute);
+	message->FindInt32("second", &second);
+	time = BTime(hour, minute, second);
+}
+
+
+void
 EventWindow::SetEventDate(BDate& date)
 {
-	// Set initial start time as (00:00) for a new event
-	fStartDate = date;
-	fTextStartDate->SetText(GetDateString(fStartDate));
-	fTextStartTime->SetText(GetLocaleTimeString(BDateTime(fStartDate, BTime(0, 0, 0)).Time_t()));
-
-	// Set initial end time as (01:00) for a new event
-	fEndDate = date;
-	fTextEndDate->SetText(GetDateString(fEndDate));
-	fTextEndTime->SetText(GetLocaleTimeString(BDateTime(fStartDate, BTime(1, 0, 0)).Time_t()));
-}
-
-
-void
-EventWindow::SetStartDate(BDate& date)
-{
-	if (!date.IsValid())
-		return;
-	fStartDate = date;
-	fTextStartDate->SetText(GetDateString(fStartDate));
-}
-
-
-void
-EventWindow::SetEndDate(BDate& date)
-{
-	if (!date.IsValid())
-		return;
-	fEndDate = date;
-	fTextEndDate->SetText(GetDateString(fEndDate));
-}
-
-
-BString
-EventWindow::GetDateString(BDate& date)
-{
-	BString dateString;
-	BDateFormat().Format(dateString, date,
-		B_SHORT_DATE_FORMAT);
-	return dateString;
-}
-
-
-BString
-EventWindow::GetLocaleTimeString(time_t timeValue)
-{
-	BString timeString;
-	BTimeFormat timeFormat;
-	timeFormat.SetTimeFormat(B_SHORT_TIME_FORMAT, "HH:mm");
-	timeFormat.Format(timeString, timeValue,
-		B_SHORT_TIME_FORMAT);
-	return timeString;
+	fStartDateEdit->SetDate(date);
+	fEndDateEdit->SetDate(date);
+	fStartTimeEdit->SetDate(date);
+	fEndTimeEdit->SetDate(date);
+	fStartTimeEdit->SetTime(0, 0, 0);
+	fEndTimeEdit->SetTime(1, 0, 0);
 }
 
 
@@ -282,24 +274,21 @@ EventWindow::OnSaveClick()
 
 	time_t start;
 	time_t end;
+
+	BDate startDate;
+	BDate endDate;
+
 	BTime startTime;
 	BTime endTime;
 
-	if (fAllDayCheckBox->Value() == B_CONTROL_OFF) {
-		BTimeFormat timeFormat;
-		timeFormat.SetTimeFormat(B_SHORT_TIME_FORMAT, "HH:mm");
-		timeFormat.Parse(fTextStartTime->Text(), B_SHORT_TIME_FORMAT, startTime);
-		timeFormat.Parse(fTextEndTime->Text(), B_SHORT_TIME_FORMAT, endTime);
-	}
+	startDate = fStartDateEdit->GetDate();
+	endDate = fEndDateEdit->GetDate();
 
-	else
-	{
-		startTime.SetTime(0, 0, 0);
-		endTime.SetTime(23, 59, 59, 59);
-	}
+	startTime = fStartTimeEdit->GetTime();
+	endTime = fEndTimeEdit->GetTime();
 
-	start = BDateTime(fStartDate, startTime).Time_t();
-	end = BDateTime(fEndDate, endTime).Time_t();
+	start = BDateTime(startDate, startTime).Time_t();
+	end = BDateTime(endDate, endTime).Time_t();
 
 	if (difftime(start, end) > 0) {
 		BAlert* alert  = new BAlert("Error",
@@ -325,15 +314,9 @@ EventWindow::OnSaveClick()
 
 	if ((fEvent == NULL) && (fDBManager->AddEvent(&newEvent))) {
 		CloseWindow();
-	}
-
-	else if ((fEvent != NULL) && (fDBManager->UpdateEvent(fEvent, &newEvent)))
-	{
+	} else if ((fEvent != NULL) && (fDBManager->UpdateEvent(fEvent, &newEvent))) {
 		CloseWindow();
-	}
-
-	else
-	{
+	} else {
 		BAlert* alert  = new BAlert("Error",
 			"There was some error in adding the event. Please try again.",
 			NULL, "OK",NULL, B_WIDTH_AS_USUAL, B_WARNING_ALERT);
@@ -373,21 +356,16 @@ EventWindow::CloseWindow()
 void
 EventWindow::OnCheckBoxToggle()
 {
-
 	if (fAllDayCheckBox->Value() == B_CONTROL_ON) {
-		fTextStartTime->SetText("");
-		fTextEndTime->SetText("");
-		fTextStartTime->SetEnabled(false);
-		fTextEndTime->SetEnabled(false);
-	}
-
-	else
-	{
-		fTextStartTime->SetText(GetLocaleTimeString(BDateTime(fStartDate, BTime(0, 0, 0)).Time_t()));
-		fTextEndTime->SetText(GetLocaleTimeString(BDateTime(fEndDate, BTime(1, 0, 0)).Time_t()));
-		fTextStartTime->SetEnabled(true);
-		fTextEndTime->SetEnabled(true);
-
+		fStartTimeEdit->SetEnabled(false);
+		fEndTimeEdit->SetEnabled(false);
+		fStartTimeEdit->SetTime(0, 0, 0);
+		fEndTimeEdit->SetTime(23, 59, 59);
+	} else {
+		fStartTimeEdit->SetTime(0, 0, 0);
+		fEndTimeEdit->SetTime(1, 0, 0);
+		fStartTimeEdit->SetEnabled(true);
+		fEndTimeEdit->SetEnabled(true);
 	}
 }
 
@@ -400,14 +378,6 @@ EventWindow::_InitInterface()
 
 	fTextName = new BTextControl("EventName", NULL, NULL, NULL);
 	fTextPlace = new BTextControl("EventPlace", NULL, NULL, NULL);
-	fTextStartDate = new BTextControl("StartDate", NULL, NULL, NULL);
-	fTextEndDate = new BTextControl("EndDate", NULL, NULL, NULL);
-	fTextStartTime = new BTextControl("StartTime", NULL, NULL, NULL);
-	fTextEndTime = new BTextControl("EndTime", NULL, NULL, NULL);
-
-	const char* tooltip = "Enter the time in HH:mm (24 hour) format.";
-	fTextStartTime->SetToolTip(tooltip);
-	fTextEndTime->SetToolTip(tooltip);
 
 	fTextDescription = new BTextView("TextDescription", B_WILL_DRAW);
 	fTextDescription->MakeEditable();
@@ -434,10 +404,10 @@ EventWindow::_InitInterface()
 	BButton* SaveButton = new BButton("SaveButton", "OK", new BMessage(kSavePressed));
 
 	BMessage* message = new BMessage(kShowPopUpCalendar);
-	message->AddInt8("which",0);
+	message->AddInt8("which", 0);
 	fStartCalButton = new BButton("StartCalButton", "▼", message);
 	message = new BMessage(kShowPopUpCalendar);
-	message->AddInt8("which",1);
+	message->AddInt8("which", 1);
 	fEndCalButton = new BButton("EndCalButton", "▼", message);
 
 	float width, height;
@@ -455,12 +425,15 @@ EventWindow::_InitInterface()
 		category = ((Category*)fCategoryList->ItemAt(i));
 		fCategoryMenu->AddItem(new BMenuItem(category->GetName(),  B_OK));
 	}
+
 	fCategoryMenu->SetRadioMode(true);
 	fCategoryMenu->SetLabelFromMarked(true);
 	fCategoryMenu->ItemAt(0)->SetMarked(true);
 
-	fStartDateEdit = new BMenu("Start Date");
-	fEndDateEdit = new BMenu("End Date");
+	fStartDateEdit = new TDateEdit("Start date", 4, new BMessage(kStartDateEditChanged));
+	fEndDateEdit = new TDateEdit("End date", 4, new BMessage(kEndDateEditChanged));
+	fStartTimeEdit = new TTimeEdit("Start time", 4, new BMessage(kStartTimeEditChanged));
+	fEndTimeEdit = new TTimeEdit("End time", 4, new BMessage(kEndTimeEditChanged));
 
 	fCategoryMenuField = new BMenuField("CategoryMenuField", NULL, fCategoryMenu);
 
@@ -481,10 +454,10 @@ EventWindow::_InitInterface()
 		.AddStrut(B_USE_ITEM_SPACING)
 		.AddGrid()
 			.Add(fStartDateLabel, 0, 0)
-			.Add(fTextStartDate, 1, 0)
+			.Add(fStartDateEdit, 1, 0)
 			.Add(fStartCalButton, 2, 0)
 			.Add(fStartTimeLabel, 0, 1)
-			.Add(fTextStartTime, 1, 1)
+			.Add(fStartTimeEdit, 1, 1)
 		.End()
 	.End();
 	fStartDateBox->SetLabel("Start Date and Time");
@@ -495,10 +468,10 @@ EventWindow::_InitInterface()
 		.AddStrut(B_USE_ITEM_SPACING)
 		.AddGrid()
 			.Add(fEndDateLabel, 0, 0)
-			.Add(fTextEndDate, 1, 0)
+			.Add(fEndDateEdit, 1, 0)
 			.Add(fEndCalButton, 2, 0)
 			.Add(fEndTimeLabel, 0, 1)
-			.Add(fTextEndTime, 1, 1)
+			.Add(fEndTimeEdit, 1, 1)
 		.End()
 	.End();
 	fEndDateBox->SetLabel("End Date and Time");
@@ -590,8 +563,6 @@ EventWindow::_UpdateCategoryMenu()
 void
 EventWindow::_DisableControls()
 {
-	fTextStartDate->SetEnabled(false);
-	fTextEndDate->SetEnabled(false);
 	fEveryMonth->SetEnabled(false);
 	fEveryYear->SetEnabled(false);
 }
@@ -621,15 +592,13 @@ EventWindow::_ShowPopUpCalendar(int8 which)
 	if (which == 0) {
 		boxPosition = fStartDateBox->Frame().RightTop();
 		buttonPosition = fStartCalButton->Frame().LeftBottom();
-		date = fStartDate;
+		date = fStartDateEdit->GetDate();
 		invocationMessage = new BMessage(kStartDateChanged);
 
-	}
-	else
-	{
+	} else {
 		boxPosition = fEndDateBox->Frame().RightTop();
 		buttonPosition = fEndCalButton->Frame().LeftBottom();
-		date = fEndDate;
+		date = fEndDateEdit->GetDate();
 		invocationMessage = new BMessage(kEndDateChanged);
 	}
 
@@ -642,7 +611,6 @@ EventWindow::_ShowPopUpCalendar(int8 which)
 	CalendarMenuWindow* window = new CalendarMenuWindow(this, where);
 	window->SetDate(date);
 	window->SetInvocationMessage(invocationMessage);
-	window->SetDate(date);
 	fCalendarWindow = BMessenger(window);
 	window->Show();
 }
