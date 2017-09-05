@@ -32,8 +32,8 @@ EventListItem::DrawItem(BView* view, BRect rect, bool complete)
 {
 	float spacing = be_control_look->DefaultLabelSpacing();
 	float offset = spacing;
-	BFont namefont;
-	BFont timefont;
+	BFont headerFont;
+	BFont footerFont;
 	font_height finfo;
 
 	rgb_color bgColor;
@@ -46,41 +46,43 @@ EventListItem::DrawItem(BView* view, BRect rect, bool complete)
 	view->SetLowColor(bgColor);
 	view->FillRect(rect);
 
-	timefont.SetSize(timefont.Size() + 5);
-	timefont.GetHeight(&finfo);
-	view->SetFont(&timefont);
+	headerFont.SetSize(headerFont.Size() + 4);
+	headerFont.GetHeight(&finfo);
+	view->SetFont(&headerFont);
 
-	// event category indicator
+	// category indicator
 
 	BRect colorRect(rect);
 	colorRect.left += spacing + 2;
-	colorRect.right = colorRect.left + rect.Height() / 4;
+	colorRect.right = colorRect.left + rect.Height() / 6;
 	colorRect.top = rect.top + ((rect.Height()
 		- (finfo.ascent + finfo.descent + finfo.leading)) / 2);
-		- timefont.Size();
+		- headerFont.Size();
 
-	colorRect.bottom = colorRect.top + rect.Height() / 4;
+	colorRect.bottom = colorRect.top + rect.Height() / 6;
 	view->SetHighColor(fColor);
 	view->FillEllipse(colorRect);
 	view->SetHighUIColor(B_CONTROL_BORDER_COLOR);
 	view->StrokeEllipse(colorRect);
-	offset += spacing + colorRect.Width() + 2;
+	offset += spacing * 2 + colorRect.Width();
 
-	// event time period
+	// name
 
 	if (IsSelected())
-		view->SetHighColor(ui_color(B_LIST_SELECTED_ITEM_TEXT_COLOR));
+		view->SetHighColor(tint_color(ui_color(B_LIST_SELECTED_ITEM_TEXT_COLOR),
+			0.9));
 	else
-		view->SetHighColor(ui_color(B_LIST_ITEM_TEXT_COLOR));
+		view->SetHighColor(tint_color(ui_color(B_LIST_ITEM_TEXT_COLOR), 0.9));
+
 
 	view->MovePenTo(offset, rect.top + ((rect.Height()
 		- (finfo.ascent + finfo.descent + finfo.leading)) / 2)
-		+ (finfo.ascent + finfo.descent) - timefont.Size() + 2 + 3);
+		+ (finfo.ascent + finfo.descent) - headerFont.Size() + 2 + 3);
 
-	view->TruncateString(&fTimeText, B_TRUNCATE_MIDDLE,  rect.Width() - offset - 2);
-	view->DrawString(fTimeText.String());
+	view->TruncateString(&fName, B_TRUNCATE_MIDDLE,  rect.Width() - offset - 2);
+	view->DrawString(fName.String());
 
-	// event name
+	// time period
 
 	if (IsSelected())
 		view->SetHighColor(tint_color(ui_color(B_LIST_SELECTED_ITEM_TEXT_COLOR),
@@ -88,17 +90,17 @@ EventListItem::DrawItem(BView* view, BRect rect, bool complete)
 	else
 		view->SetHighColor(tint_color(ui_color(B_LIST_ITEM_TEXT_COLOR), 0.6));
 
-	namefont.SetSize(timefont.Size() - 2);
-	namefont.GetHeight(&finfo);
-	view->SetFont(&namefont);
+	footerFont.SetSize(headerFont.Size() - 2);
+	footerFont.GetHeight(&finfo);
+	view->SetFont(&footerFont);
 
 	view->MovePenTo(offset,
-		rect.top + timefont.Size() - namefont.Size() + 6 + ((rect.Height()
+		rect.top + headerFont.Size() - footerFont.Size() + 6 + ((rect.Height()
 		- (finfo.ascent + finfo.descent + finfo.leading)) / 2)
 		+ (finfo.ascent + finfo.descent));
 
-		view->TruncateString(&fName, B_TRUNCATE_MIDDLE, rect.Width() - offset - 2);
-		view->DrawString(fName.String());
+		view->TruncateString(&fTimeText, B_TRUNCATE_MIDDLE, rect.Width() - offset - 2);
+		view->DrawString(fTimeText.String());
 
 	// draw lines
 
