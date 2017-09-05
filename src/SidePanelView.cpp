@@ -13,7 +13,6 @@
 #include <LocaleRoster.h>
 #include <StringView.h>
 
-#include "MainView.h"
 #include "MainWindow.h"
 #include "PreferenceWindow.h"
 
@@ -91,21 +90,7 @@ SidePanelView::SidePanelView()
 void
 SidePanelView::MessageReceived(BMessage* message)
 {
-	int32 change;
 	switch (message->what) {
-
-		case B_OBSERVER_NOTICE_CHANGE:
-			message->FindInt32(B_OBSERVE_WHAT_CHANGE, &change);
-			switch (change) {
-				case kSystemDateChangeMessage:
-					fDateHeaderView->MessageReceived(message);
-					break;
-
-				default:
-					BView::MessageReceived(message);
-					break;
-			}
-			break;
 
 		case kSelectionMessage:
 		{
@@ -183,6 +168,7 @@ SidePanelView::_UpdateDate(const BDate& date)
 	_UpdateDateLabel();
 
 	Window()->PostMessage(kSelectedDateChanged);
+	fDateHeaderView->UpdateDateHeader(date);
 }
 
 

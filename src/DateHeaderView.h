@@ -5,6 +5,7 @@
 #ifndef _DATEHEADERVIEW_H_
 #define _DATEHEADERVIEW_H_
 
+#include <DateTime.h>
 #include <View.h>
 
 
@@ -15,10 +16,9 @@ class DateHeaderView: public BView {
 public:
 					DateHeaderView();
 		void 			MessageReceived(BMessage* message);
-
+		void 			UpdateDateHeader(const BDate& date
+						= BDate::CurrentDate(B_LOCAL_TIME));
 private:
-		void 			_UpdateDateHeader();
-
 		BStringView*		fDayLabel;
 		BStringView*		fDayOfWeekLabel;
 		BStringView*		fMonthYearLabel;

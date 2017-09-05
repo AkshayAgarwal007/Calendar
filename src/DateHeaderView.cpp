@@ -11,8 +11,6 @@
 #include <LocaleRoster.h>
 #include <StringView.h>
 
-#include "MainView.h"
-
 
 DateHeaderView::DateHeaderView()
 	:BView("DateHeaderView", B_WILL_DRAW)
@@ -44,32 +42,17 @@ DateHeaderView::DateHeaderView()
 			.AddGlue()
 	.End();
 
-	_UpdateDateHeader();
+	UpdateDateHeader();
 }
 
 
 void
 DateHeaderView::MessageReceived(BMessage* message)
 {
-	int32 change;
 	switch (message->what) {
 
-		case B_OBSERVER_NOTICE_CHANGE:
-		{	message->FindInt32(B_OBSERVE_WHAT_CHANGE, &change);
-			switch (change) {
-				case kSystemDateChangeMessage:
-					_UpdateDateHeader();
-					break;
-
-				default:
-					BView::MessageReceived(message);
-					break;
-			}
-			break;
-		}
-
 		case B_LOCALE_CHANGED:
-			_UpdateDateHeader();
+			UpdateDateHeader();
 			break;
 
 		default:
@@ -80,9 +63,9 @@ DateHeaderView::MessageReceived(BMessage* message)
 
 
 void
-DateHeaderView::_UpdateDateHeader()
+DateHeaderView::UpdateDateHeader(const BDate &date)
 {
-	time_t timeValue = (time_t)time(NULL);
+	time_t timeValue = BDateTime(date, BTime(0, 0, 0)).Time_t();
 
 	BString dateString;
 	BString dayString;

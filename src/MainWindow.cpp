@@ -247,8 +247,6 @@ MainWindow::_InitInterface()
 	fSidePanelView = new SidePanelView();
 	fDayView = new DayView(BDate::CurrentDate(B_LOCAL_TIME));
 
-	fMainView->StartWatchingAll(fSidePanelView);
-
 	BLayoutBuilder::Group<>(fMainView, B_VERTICAL, 0.0f)
 		.Add(fDayView)
 	.End();
