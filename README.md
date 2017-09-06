@@ -27,7 +27,7 @@ locale preferences change but GUI string still needs to be localized.
 
 **Main Window**
 
-![Main Window](images/main_window.png)
+![Main Window](images/main_window_1.png)
 
 *The toolbar icons are just placeholder icons.*
 
@@ -72,7 +72,7 @@ The big date header in the top right currently shows the current system date.
 
 **Event Manager**
 
-![Event Manager](images/event_manager_2.png)
+![Event Manager](images/event_manager_3.png)
 
 Event details like name, place, description can be filled here. Appropriate
 category can be selected which is set to 'Default' category by default. An event
